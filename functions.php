@@ -21,6 +21,8 @@ require_once($template_diretorio . '/endpoints/user_comment.php');
 require_once($template_diretorio . '/endpoints/like_posts.php');
 require_once($template_diretorio . '/endpoints/like_posts_get.php');
 require_once($template_diretorio . '/endpoints/like_posts_delete.php');
+require_once($template_diretorio . '/endpoints/profile_photo_post.php');
+require_once($template_diretorio . '/endpoints/transacao_post.php');
 
 
 add_filter('jwt_auth_whitelist', function ($endpoints) {

@@ -5,9 +5,10 @@
     $user_id = $user->ID;
 
     if ($user_id > 0) {
-      $nome = sanitize_text_field($request['nome']);
+      $nome = sanitize_text_field($request['name']);
       $email = sanitize_email($request['email']);
       $senha = sanitize_text_field($request['senha']) ?: $user->user_pass; 
+      $numero_celular = sanitize_text_field($request['phone']) ?: '';
 
       $email_exists = username_exists($email);  
 
@@ -16,7 +17,8 @@
            $unique_name = '@' . $nome . substr(sha1('unique_key_prefix' . $user_id), 0, 8);
            update_user_meta($user_id, 'unique_name', $unique_name);
         }
-        update_user_meta($user_id, 'phone_number', $senha);
+        update_user_meta($user_id, 'phone_number', $numero_celular);
+
         $stored_unique_name = get_user_meta($user_id, 'unique_name', true);
 
         $response = array(
@@ -24,8 +26,8 @@
           'user_email' => $email,
           'user_pass' => $senha,
           'display_name' => $nome,
-          'user_nicename' => $email,
-          'nickname' => $email,
+          'user_nicename' => $nome,
+          'nickname' => $nome,
           'first_name' => $nome,
           'unique_name' => $stored_unique_name
         );

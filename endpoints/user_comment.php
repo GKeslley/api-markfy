@@ -23,7 +23,10 @@
          if ($comment_parent_ID) {
            $parent_comment = get_comment($comment_parent_ID);
            update_comment_meta($parent_comment->comment_ID, 'comment_reply', $comment_content);
-           die();
+           return rest_ensure_response(array
+                                        ('comment_reply' => $comment_content, 
+                                        'parent_id' => $comment_parent_ID)
+                                        );
         }
 
          $comment_id = wp_insert_comment($commentData);

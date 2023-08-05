@@ -3,14 +3,14 @@
   function products_scheme($slug) {
     $post_id = getproduct_id_by_slug($slug);
 
-     // Recupera o unique_key do metadado do produto
     $stored_unique_key = get_post_meta($post_id, 'unique_key', true);
 
-    $args = array(
-        'meta_key'   => 'post_ID',
-        'meta_value' => $slug,
-        'meta_compare' => '=', // Pode ser usado para comparar o valor do meta_key
-    );
+    $sell_product = get_post_meta($post_id, 'vendido', true);
+
+    if ($sell_product === 'true') {
+      $error = new WP_Error('não encontrado', 'Produto não encontrado', array('status' => 404));
+      return rest_ensure_response($error);
+    }
 
     $comments = get_comments($args);
 
@@ -18,15 +18,12 @@
 
     if ($post_id) {
       foreach ($comments as $comment) {
-        // Obtém o ID do comentário
         $comment_id = $comment->comment_ID;
         $comment_author = $comment->comment_author;
         $comment_content = $comment->comment_content;
         $comment_date = $comment->comment_date;
         $comment_parent = $comment->comment_parent;
 
-
-        // Obtém os metadados do comentário
         $post_ID = get_comment_meta($comment_id, 'post_ID', true);
         $comment_author_ID = get_comment_meta($comment_id, 'comment_author_ID', true);
         $comment_reply = get_comment_meta($comment_id, 'comment_reply', true);
@@ -246,12 +243,19 @@
       );
     }
 
+    $sell = array(
+      'key' => 'vendido',
+      'value' => 'false',
+      'compare' => '='
+    );
+
     $query = array(
       'post_type' => 'produto',
       'posts_per_page' => $_limit,
       'paged' => $_page,
       's' => $q,
       'meta_query' => array(
+        $sell,
         $usuario_id_query,
         $categoria_query,
         $subcategoria_query
@@ -301,11 +305,6 @@
   add_action('rest_api_init', 'registrar_api_products_categoria');
 
   function get_produto_by_subcategoria($request) {
-    $q = sanitize_text_field($request['q']) ?: '';
-    $_page = sanitize_text_field($request['_page']) ?: 0;
-    $_limit = sanitize_text_field($request['_limit']) ?: 9;
-    
-    
     return get_produto_categoria_scheme($request);
   }
 

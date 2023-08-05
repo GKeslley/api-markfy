@@ -21,7 +21,8 @@ function api_user_endereco_scheme($user, $user_id) {
             'complemento' => get_post_meta($value->ID, 'complemento', true),
             'cidade' => get_post_meta($value->ID, 'cidade', true),
             'uf' => get_post_meta($value->ID, 'uf', true),
-            'telefone' => get_post_meta($value->ID, 'telefone', true),
+            'bairro' => get_post_meta($value->ID, 'bairro', true),
+            'referencia' => get_post_meta($value->ID, 'referencia', true),
             );
         }
     }
@@ -39,6 +40,7 @@ function api_user_get($request)
     
     $usuario_id = get_user_meta($user_id, 'unique_name', true);
     $phone_number = get_user_meta($user_id, 'phone_number', true) ?: '';
+    $profile_photo = wp_get_attachment_url(get_user_meta($user_id, 'profile_photo', true)) ?: null;
 
     if ($user_id > 0) {
         $response = array(
@@ -47,7 +49,8 @@ function api_user_get($request)
           "email" => $user->user_email,
           'endereco' => $endereco,
           'usuario_id' => $usuario_id,
-          'numero_celular' => $phone_number  
+          'numero_celular' => $phone_number,
+          'foto_perfil' => $profile_photo
         );
     } else {
         $response = new WP_Error('permissao', 'Usuário não possui permissão', array('status' => 401));
@@ -79,19 +82,31 @@ function api_other_user_get($request) {
 
   $users = get_users($args);
 
-   $usuario_id_query = null;
+  $unique_key = get_user_meta($users[0]->ID, 'unique_key', true);
+
+    $usuario_id_query = null;
     if ($usuario_id) {
       $usuario_id_query = array(
-        'key' => 'usuario_id',
-        'value' => $unique_name,
+        'key' => 'chave_unica',
+        'value' => $unique_key,
         'compare' => '='
       );
-    }
+    } 
+
+    $vendido = array(
+      'key' => 'vendido',
+      'value' => 'false',
+      'compare' => '='
+    );
 
     $query = array(
       'post_type' => 'produto',
+      'posts_per_page' => null,
+      'paged' => null,
+      's' => null,
       'meta_query' => array(
         $usuario_id_query,
+        $vendido
       )
     );
 
@@ -101,17 +116,18 @@ function api_other_user_get($request) {
   
   if (!empty($users)) {
     $user = $users[0];
-
+    $profile_photo = wp_get_attachment_url(get_user_meta($user->ID, 'profile_photo', true)) ?: null;
     $endereco = api_user_endereco_scheme($user, $user->ID);
 
     $response = array(
       'nome' => $user->display_name,
       'data_registro' => $user->user_registered,
       'endereco' => $endereco,
-      'total_postagens' => $total
+      'total_postagens' => $total,
+      'foto_perfil' => $profile_photo,
     );
   } else {
-    $response = new WP_Error('usuario', 'Usuário não encontrado', array('status' => 401));
+    $response = new WP_Error('usuario', 'Usuário não encontrado', array('status' => 404));
   }
 
   return rest_ensure_response($response);
