@@ -54,7 +54,7 @@ function like_posts_get($request) {
     $slug = get_post_meta($post_id, 'slug', true); 
 
     $curtidas[] = array(
-        'produtos' => products_scheme($slug)       
+        'produtos' => products_scheme($slug, 'likes')       
     ); 
   }
 

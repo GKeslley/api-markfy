@@ -5,42 +5,43 @@
 
     $stored_unique_key = get_post_meta($post_id, 'unique_key', true);
 
-    $sell_product = get_post_meta($post_id, 'vendido', true);
+    $args = array(
+      'meta_key'   => 'post_id',
+      'meta_value' => $slug,
+      'number' => 7,  
+      'meta_compare' => '='
+    );
 
-    if ($sell_product === 'true') {
-      $error = new WP_Error('não encontrado', 'Produto não encontrado', array('status' => 404));
-      return rest_ensure_response($error);
-    }
-
-    $comments = get_comments($args);
-
-    $comments_array = array();
+    $comments_array = product_get_comments(array('slug' => $slug), $args);
 
     if ($post_id) {
-      foreach ($comments as $comment) {
-        $comment_id = $comment->comment_ID;
-        $comment_author = $comment->comment_author;
-        $comment_content = $comment->comment_content;
-        $comment_date = $comment->comment_date;
-        $comment_parent = $comment->comment_parent;
-
-        $post_ID = get_comment_meta($comment_id, 'post_ID', true);
-        $comment_author_ID = get_comment_meta($comment_id, 'comment_author_ID', true);
-        $comment_reply = get_comment_meta($comment_id, 'comment_reply', true);
-
-        $comments_data = array(
-            "comment_id" => $comment_id,
-            "comment_author" => $comment_author,
-            "comment_content" => $comment_content,
-            "comment_parent" => $comment_parent,
-            "comment_date" => $comment_date,
-            "post_ID" => $post_ID,
-            "comment_author_ID" => $comment_author_ID,
-            "comment_reply" => $comment_reply
-        );
-        $comments_array[] = $comments_data;
-      }
     
+      if ($comments) {
+          foreach ($comments as $comment) {
+            $comment_id = $comment->comment_ID;
+            $comment_author = $comment->comment_author;
+            $comment_content = $comment->comment_content;
+            $comment_date = $comment->comment_date;
+            $comment_parent = $comment->comment_parent;
+
+            $post_ID = get_comment_meta($comment_id, 'post_ID', true);
+            $comment_author_ID = get_comment_meta($comment_id, 'comment_author_ID', true);
+            $comment_reply = get_comment_meta($comment_id, 'comment_reply', true);
+
+            $comments_data = array(
+                "comment_id" => $comment_id,
+                "comment_author" => $comment_author,
+                "comment_content" => $comment_content,
+                "comment_parent" => $comment_parent,
+                "comment_date" => $comment_date,
+                "post_ID" => $post_ID,
+                "comment_author_ID" => $comment_author_ID,
+                "comment_reply" => $comment_reply
+            );
+            $comments_array[] = $comments_data;
+          }
+      }
+      
       $post_meta = get_post_meta($post_id);
 
       $images = get_attached_media('image', $post_id);
@@ -106,7 +107,7 @@
 
   // PRODUTOS
 
-  function api_products_get($request) {
+  function api_products_get($request, $sold = false) {
 
     $q = sanitize_text_field($request['q']) ?: '';
     $_page = sanitize_text_field($request['_page']) ?: 0;
@@ -137,7 +138,7 @@
 
     $vendido = array(
       'key' => 'vendido',
-      'value' => 'false',
+      'value' => $sold ? 'true' : 'false',
       'compare' => '='
     );
 
@@ -172,7 +173,7 @@
     $produtos = array();
 
    foreach($posts as $key => $value) {
-     $produtos[] = products_scheme($value->post_name);
+     $produtos[] = products_scheme($value->post_name, true);
    }
 
    $response = rest_ensure_response($produtos);
@@ -191,6 +192,25 @@
   }
 
   add_action('rest_api_init', 'registrar_api_products_get');
+
+  // GET PRODUCTS SOLD
+
+  function get_products_sold($request) {
+    return api_products_get($request, true);  
+  }
+
+  function endpoint_get_products_sold() {
+    register_rest_route('api', 'produtos/vendidos', array(
+      array(
+        'methods' => WP_REST_Server::READABLE,
+        'callback' => 'get_products_sold',
+      ),
+    ));
+  }
+
+  add_action('rest_api_init', 'endpoint_get_products_sold');
+
+  // -------- GET PRODUCTS SOLD ---------
 
   function get_produto_categoria_scheme($request) {
     $categoria = $request['categoria'];

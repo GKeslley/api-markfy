@@ -13,16 +13,17 @@ require_once($template_diretorio . '/custom-post-type/curtida.php');
 require_once($template_diretorio . '/endpoints/user_post.php');
 require_once($template_diretorio . '/endpoints/user_get.php');
 require_once($template_diretorio . '/endpoints/user_put.php');
+require_once($template_diretorio . '/endpoints/user_comment.php');
 require_once($template_diretorio . '/endpoints/product_post.php');
 require_once($template_diretorio . '/endpoints/product_get.php');
 require_once($template_diretorio . '/endpoints/product_delete.php');
 require_once($template_diretorio . '/endpoints/address_post.php');
-require_once($template_diretorio . '/endpoints/user_comment.php');
 require_once($template_diretorio . '/endpoints/like_posts.php');
 require_once($template_diretorio . '/endpoints/like_posts_get.php');
 require_once($template_diretorio . '/endpoints/like_posts_delete.php');
 require_once($template_diretorio . '/endpoints/profile_photo_post.php');
 require_once($template_diretorio . '/endpoints/transacao_post.php');
+require_once($template_diretorio . '/endpoints/transacao_get.php');
 
 
 add_filter('jwt_auth_whitelist', function ($endpoints) {
