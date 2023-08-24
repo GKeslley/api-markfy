@@ -1,31 +1,33 @@
 <?php
-function like_posts_get($request) {
+
+function like_posts_get($request)
+{
     $q = sanitize_text_field($request['q']) ?: '';
     $_page = sanitize_text_field($request['_page']) ?: 0;
     $_limit = sanitize_text_field($request['_limit']) ?: 9;
-    $usuario_id = $request['_user'];
+    $user = $request['_user'];
     $order = $request['_order'] ?: null;
 
     $args = array(
     'meta_key' => 'unique_name',
-    'meta_value' => $usuario_id,
+    'meta_value' => $user,
     'meta_compare' => '='
     );
 
-    $usuarios = get_users($args);
+    $find_user = get_users($args);
 
-    foreach ($usuarios as $usuario) {
-        $chave_unica = get_user_meta($usuario->ID, 'unique_key', true);
+    foreach ($find_user as $user_data) {
+        $user_unique_key = get_user_meta($user_data->ID, 'unique_key', true);
     }
 
-    $usuario_id_query = null;
-    if ($usuario_id) {
-      $usuario_id_query = array(
-        'key' => 'chave_unica',
-        'value' => $chave_unica,
-        'compare' => '='
-      );
-    } 
+    $user_query = null;
+    if ($user) {
+        $user_query = array(
+          'key' => 'chave_unica',
+          'value' => $user_unique_key,
+          'compare' => '='
+        );
+    }
 
     $query = array(
       'post_type' => 'curtida',
@@ -33,58 +35,56 @@ function like_posts_get($request) {
       'paged' => $_page,
       's' => $q,
       'meta_query' => array(
-        $usuario_id_query
+        $user_query
       )
     );
 
-    
-
     $loop = new WP_Query($query);
     if (!$loop->have_posts()) {
-       $response = new WP_Error('naoexiste', 'Produto não encontrado', array('status' => 404));
-       return $response;
+        $response = new WP_Error('naoexiste', 'Produto não encontrado', array('status' => 404));
+        return $response;
     }
 
     $posts = $loop->posts;
     $total = $loop->found_posts;
 
-   $curtidas = null; 
-  foreach ($posts as $post) {
-    $post_id = $post->ID;
-    $slug = get_post_meta($post_id, 'slug', true); 
+    $likes = null;
+    foreach ($posts as $post) {
+        $post_id = $post->ID;
+        $slug = get_post_meta($post_id, 'slug', true);
 
-    $curtidas[] = array(
-        'produtos' => products_scheme($slug, 'likes')       
-    ); 
-  }
+        $likes[] = array(
+            'produtos' => products_scheme($slug, 'likes')
+        );
+    }
 
-
-   $response = rest_ensure_response($curtidas);
-   $response->header('X-Total-Count', $total);
+    $response = rest_ensure_response($likes);
+    $response->header('X-Total-Count', $total);
 
     return $response;
-  }
+}
 
-  function get_posts_curtidos() {
+function register_get_posts_likes()
+{
     register_rest_route('api', 'curtidas', array(
       array(
         'methods' => WP_REST_Server::READABLE,
         'callback' => 'like_posts_get',
       ),
     ));
-  }
+}
 
-  add_action('rest_api_init', 'get_posts_curtidos');
+add_action('rest_api_init', 'register_get_posts_likes');
 
+//// CURTIDA
 
-
-   //// CURTIDA
-
-   function like_post_get($request) {
+function like_post_get($request)
+{
     $q = sanitize_text_field($request['q']) ?: '';
     $_page = sanitize_text_field($request['_page']) ?: 0;
     $_limit = sanitize_text_field($request['_limit']) ?: 9;
-    $usuario_id = $request['_user'];
+
+    $user_request = $request['_user'];
     $order = $request['_order'] ?: null;
     $slug = $request['slug'];
 
@@ -100,15 +100,14 @@ function like_posts_get($request) {
             'meta_compare' => '='
         );
 
-        $chave_unica = get_user_meta($user_id, 'unique_key', true);
+        $unique_key = get_user_meta($user_id, 'unique_key', true);
 
-        $usuario_id_query = array(
+        $user_request_query = array(
            'key' => 'chave_unica',
-           'value' => $chave_unica,
+           'value' => $unique_key,
            'compare' => '='
         );
-        
-        
+
         $query = array(
           'post_type' => 'curtida',
           'name' => $slug.'-'.$user_id,
@@ -117,41 +116,38 @@ function like_posts_get($request) {
           'paged' => $_page,
           's' => $q,
           'meta_query' => array(
-            $usuario_id_query
+            $user_request_query
           )
         );
 
         $loop = new WP_Query($query);
         if (!$loop->have_posts()) {
-           $response = new WP_Error('naoexiste', 'Produto não encontrado', array('status' => 404));
-           return $response;
+            $response = new WP_Error('naoexiste', 'Produto não encontrado', array('status' => 404));
+            return $response;
         }
 
         $posts = $loop->posts;
         $total = $loop->found_posts;
-        
-        if ($total > 0) $curtida = true;
 
-       $response = rest_ensure_response($curtida);
-       $response->header('X-Total-Count', $total);
+        if ($total > 0) {
+            $curtida = true;
+        }
 
+        $response = rest_ensure_response($curtida);
+        $response->header('X-Total-Count', $total);
     }
 
-    
-
     return $response;
-  }
+}
 
-  function get_post_curtido() {
+function register_get_post_like()
+{
     register_rest_route('api', '/curtida/(?P<slug>[-\w]+)', array(
       array(
         'methods' => WP_REST_Server::READABLE,
         'callback' => 'like_post_get',
       ),
     ));
-  }
+}
 
-  add_action('rest_api_init', 'get_post_curtido');
-
-?>
-
+add_action('rest_api_init', 'register_get_post_like');

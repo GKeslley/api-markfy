@@ -1,14 +1,11 @@
 <?php
 
-
 function api_user_post_comment($request)
 {
     $comment_author = sanitize_text_field($request['author']);
     $comment_content = sanitize_text_field($request['content']);
-
     $comment_post_ID = sanitize_text_field($request['idPost']);
     $comment_author_ID = sanitize_text_field($request['idUser']);
-
     $comment_parent_ID = $request['commentParentID'] ?: 0;
 
     $time = current_time('mysql');
@@ -23,7 +20,7 @@ function api_user_post_comment($request)
            'comment_post_ID' => $comment_post_ID
         );
 
-        if ($comment_parent_ID) {      
+        if ($comment_parent_ID) {
             $parent_comment = get_comment($comment_parent_ID);
             update_comment_meta($parent_comment->comment_ID, 'comment_reply', $comment_content);
             return rest_ensure_response(
@@ -58,7 +55,7 @@ function api_user_post_comment($request)
     return rest_ensure_response($response);
 }
 
-function registrar_api_user_post_comment()
+function register_api_user_post_comment()
 {
     register_rest_route('api', 'comentario', array(
       array(
@@ -68,13 +65,13 @@ function registrar_api_user_post_comment()
     ));
 }
 
-add_action('rest_api_init', 'registrar_api_user_post_comment');
+add_action('rest_api_init', 'register_api_user_post_comment');
 
 
 //// GET
 
 
-function product_get_comments($request, $args = false)
+function api_product_get_comments($request, $args = false)
 {
     $slug = $request['slug'];
     $total = $request['_total'] ?: 9;
@@ -93,7 +90,6 @@ function product_get_comments($request, $args = false)
     }
 
     $comments = get_comments($args);
-
     $comments_array = array();
 
     if ($post_id) {
@@ -124,7 +120,7 @@ function product_get_comments($request, $args = false)
             $response = $comments_array;
         } else {
             $response = [];
-          }
+        }
     } else {
         $response = new WP_Error('comentario', 'Produto não encontrado.', array('status' => 404));
     }
@@ -132,14 +128,14 @@ function product_get_comments($request, $args = false)
     return $response;
 }
 
-function api_user_get_comments()
+function register_api_user_get_comments()
 {
     register_rest_route('api', '/comentarios/(?P<slug>[-\w]+)', array(
       array(
         'methods' => WP_REST_Server::READABLE,
-        'callback' => 'product_get_comments',
+        'callback' => 'api_product_get_comments',
       ),
     ));
 }
 
-add_action('rest_api_init', 'api_user_get_comments');
+add_action('rest_api_init', 'register_api_user_get_comments');

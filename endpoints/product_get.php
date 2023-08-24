@@ -1,6 +1,8 @@
-<?php 
+<?php
 
-  function products_scheme($slug) {
+
+function products_scheme($slug)
+{
     $post_id = getproduct_id_by_slug($slug);
 
     $stored_unique_key = get_post_meta($post_id, 'unique_key', true);
@@ -8,135 +10,110 @@
     $args = array(
       'meta_key'   => 'post_id',
       'meta_value' => $slug,
-      'number' => 7,  
+      'number' => 7,
       'meta_compare' => '='
     );
 
-    $comments_array = product_get_comments(array('slug' => $slug), $args);
+    $comments_array = api_product_get_comments(array('slug' => $slug), $args);
 
     if ($post_id) {
-    
-      if ($comments) {
-          foreach ($comments as $comment) {
-            $comment_id = $comment->comment_ID;
-            $comment_author = $comment->comment_author;
-            $comment_content = $comment->comment_content;
-            $comment_date = $comment->comment_date;
-            $comment_parent = $comment->comment_parent;
+        $post_meta = get_post_meta($post_id);
 
-            $post_ID = get_comment_meta($comment_id, 'post_ID', true);
-            $comment_author_ID = get_comment_meta($comment_id, 'comment_author_ID', true);
-            $comment_reply = get_comment_meta($comment_id, 'comment_reply', true);
+        $images = get_attached_media('image', $post_id);
+        $images_array = null;
 
-            $comments_data = array(
-                "comment_id" => $comment_id,
-                "comment_author" => $comment_author,
-                "comment_content" => $comment_content,
-                "comment_parent" => $comment_parent,
-                "comment_date" => $comment_date,
-                "post_ID" => $post_ID,
-                "comment_author_ID" => $comment_author_ID,
-                "comment_reply" => $comment_reply
-            );
-            $comments_array[] = $comments_data;
-          }
-      }
-      
-      $post_meta = get_post_meta($post_id);
-
-      $images = get_attached_media('image', $post_id);
-      $images_array = null;
-
-      if ($images) {
-        $images_array = array();
-        foreach($images as $key => $value) {
-          $images_array[] = array(
-            'titulo' => $value->post_name,
-            'src' => $value->guid
-          );
+        if ($images) {
+            $images_array = array();
+            foreach($images as $key => $value) {
+                $images_array[] = array(
+                  'titulo' => $value->post_name,
+                  'src' => $value->guid
+                );
+            }
         }
-      }
 
-       $args = array(
-           'meta_key' => 'unique_key',
-           'meta_value' => $post_meta['chave_unica'][0],
-      );
+        $argsFindUser = array(
+            'meta_key' => 'unique_key',
+            'meta_value' => $post_meta['chave_unica'][0],
+        );
 
-      $users = get_users($args);
+        $user = get_users($argsFindUser);
+        $user_unique_name = get_user_meta($user[0]->data->ID, 'unique_name', true);
 
-      $usuario_id = get_user_meta($users[0]->data->ID, 'unique_name', true);  
-    
-      $response = array(
-        'id' => $slug,
-        'fotos' => $images_array,
-        'nome' => $post_meta['nome'][0],
-        'preco' => $post_meta['preco'][0],
-        'descricao' => $post_meta['descricao'][0],
-        'categoria' => $post_meta['categoria'][0],
-        'subcategoria' => $post_meta['subcategoria'][0],
-        'vendido' => $post_meta['vendido'][0],
-        'usuario_id' => $usuario_id,
-        'nome_usuario' => $users[0]->data->display_name,
-        'comentarios' => $comments_array,
-        'slug' => $slug
-      );
+        $response = array(
+          'id' => $slug,
+          'fotos' => $images_array,
+          'nome' => $post_meta['nome'][0],
+          'preco' => $post_meta['preco'][0],
+          'descricao' => $post_meta['descricao'][0],
+          'categoria' => $post_meta['categoria'][0],
+          'subcategoria' => $post_meta['subcategoria'][0],
+          'vendido' => $post_meta['vendido'][0],
+          'usuario_id' => $user_unique_name,
+          'nome_usuario' => $user[0]->data->display_name,
+          'comentarios' => $comments_array,
+          'slug' => $slug
+        );
 
     } else {
-      $response = new WP_Error('naoexiste', 'Produto não encontrado', array('status' => 404));
+        $response = new WP_Error('naoexiste', 'Produto não encontrado', array('status' => 404));
     }
 
     return $response;
-  }
+}
 
-  function api_product_get($request) {
+function api_product_get($request)
+{
     $response = products_scheme($request['slug']);
 
     return rest_ensure_response($response);
-  }
+}
 
-  function registrar_api_product_get() {
+function registrar_api_product_get()
+{
     register_rest_route('api', '/produto/(?P<slug>[-\w]+)', array(
       array(
         'methods' => WP_REST_Server::READABLE,
         'callback' => 'api_product_get',
       ),
     ));
-  }
+}
 
-  add_action('rest_api_init', 'registrar_api_product_get');
+add_action('rest_api_init', 'registrar_api_product_get');
 
-  // PRODUTOS
+// PRODUTOS
 
-  function api_products_get($request, $sold = false) {
+function api_products_get($request, $sold = false)
+{
 
     $q = sanitize_text_field($request['q']) ?: '';
-    $_page = sanitize_text_field($request['_page']) ?: 0;
-    $_limit = sanitize_text_field($request['_total']) ?: 9;
-    $usuario_id = sanitize_text_field($request['_user']) ?: null;
+    $_page = sanitize_text_field($request['_page']) ?: 1;
+    $_limit = sanitize_text_field($request['_total']) ?: '9';
+    $user = sanitize_text_field($request['_user']) ?: null;
     $order = $request['_order'] ?: null;
+    $user_query = null;
 
-    $args = array(
-    'meta_key' => 'unique_name',
-    'meta_value' => $usuario_id,
-    'meta_compare' => '='
-    );
+    if ($user) {
+        $args = array(
+          'meta_key' => 'unique_name',
+          'meta_value' => $user,
+          'meta_compare' => '='
+        );
 
-    $usuarios = get_users($args);
+        $find_user = get_users($args);
 
-    foreach ($usuarios as $usuario) {
-        $chave_unica = get_user_meta($usuario->ID, 'unique_key', true);
+        foreach ($find_user as $userID) {
+            $unique_key = get_user_meta($userID->ID, 'unique_key', true);
+        }
+
+        $user_query = array(
+          'key' => 'chave_unica',
+          'value' => $unique_key,
+          'compare' => '='
+        );
     }
 
-    $usuario_id_query = null;
-    if ($usuario_id) {
-      $usuario_id_query = array(
-        'key' => 'chave_unica',
-        'value' => $chave_unica,
-        'compare' => '='
-      );
-    } 
-
-    $vendido = array(
+    $sold = array(
       'key' => 'vendido',
       'value' => $sold ? 'true' : 'false',
       'compare' => '='
@@ -148,119 +125,123 @@
       'paged' => $_page,
       's' => $q,
       'meta_query' => array(
-        $usuario_id_query,
-        $vendido
+        $sold,
+        $user_query
       )
     );
 
     if ($order) {
-      $query['meta_key'] = 'preco';
-      $query['orderby'] = 'preco';
-      $query['order'] = $order;
+        $query['meta_key'] = 'preco';
+        $query['orderby'] = 'preco';
+        $query['order'] = $order;
     }
-
 
     $loop = new WP_Query($query);
 
     if (!$loop->have_posts()) {
-       $response = new WP_Error('naoexiste', 'Produto não encontrado', array('status' => 404));
-       return $response;
+        $response = new WP_Error('naoexiste', 'Produto não encontrado', array('status' => 404));
+        return $response;
     }
 
     $posts = $loop->posts;
     $total = $loop->found_posts;
 
-    $produtos = array();
+    $products = array();
 
-   foreach($posts as $key => $value) {
-     $produtos[] = products_scheme($value->post_name, true);
-   }
+    foreach($posts as $key => $value) {
+        $products[] = products_scheme($value->post_name, true);
+    }
 
-   $response = rest_ensure_response($produtos);
-   $response->header('X-Total-Count', $total);
+    $response = rest_ensure_response($products);
+    $response->header('X-Total-Count', $total);
 
     return $response;
-  }
+}
 
-  function registrar_api_products_get() {
+function register_api_products_get()
+{
     register_rest_route('api', 'produtos', array(
       array(
         'methods' => WP_REST_Server::READABLE,
         'callback' => 'api_products_get',
       ),
     ));
-  }
+}
 
-  add_action('rest_api_init', 'registrar_api_products_get');
+add_action('rest_api_init', 'register_api_products_get');
 
-  // GET PRODUCTS SOLD
+// GET PRODUCTS SOLD
 
-  function get_products_sold($request) {
-    return api_products_get($request, true);  
-  }
+function get_products_sold($request)
+{
+    return api_products_get($request, true);
+}
 
-  function endpoint_get_products_sold() {
+function endpoint_get_products_sold()
+{
     register_rest_route('api', 'produtos/vendidos', array(
       array(
         'methods' => WP_REST_Server::READABLE,
         'callback' => 'get_products_sold',
       ),
     ));
-  }
+}
 
-  add_action('rest_api_init', 'endpoint_get_products_sold');
+add_action('rest_api_init', 'endpoint_get_products_sold');
 
-  // -------- GET PRODUCTS SOLD ---------
+// -------- GET PRODUCTS SOLD ---------
 
-  function get_produto_categoria_scheme($request) {
-    $categoria = $request['categoria'];
-    $subcategoria = $request['subcategoria'];
-    $usuario_id = $request['user'];
+function get_produto_categoria_scheme($request)
+{
+    $category = $request['categoria'];
+    $subcategory = $request['subcategoria'];
+    $user = $request['user'];
     $order = $request['_order'] ?: null;
+
 
     $q = sanitize_text_field($request['q']) ?: '';
     $_page = sanitize_text_field($request['_page']) ?: 0;
     $_limit = sanitize_text_field($request['_limit']) ?: 9;
 
-    $args = array(
-    'meta_key' => 'unique_name',
-    'meta_value' => $usuario_id,
-    'meta_compare' => '='
-    );
+    $user_query = null;
 
-    $usuarios = get_users($args);
+    if ($user) {
+        $args = array(
+          'meta_key' => 'unique_name',
+          'meta_value' => $user,
+          'meta_compare' => '='
+        );
 
-    foreach ($usuarios as $usuario) {
-        $chave_unica = get_user_meta($usuario->ID, 'unique_key', true);
+        $findUser = get_users($args);
+
+        foreach ($findUser as $userID) {
+            $unique_key = get_user_meta($userID->ID, 'unique_key', true);
+        }
+
+        $user_query = array(
+          'key' => 'chave_unica',
+            'value' => $unique_key,
+            'compare' => '='
+        );
     }
 
-    $usuario_id_query = null;
+    $category_query = null;
 
-    if ($usuario_id) {
-      $usuario_id_query = array(
-        'key' => 'chave_unica',
-        'value' => $chave_unica,
-        'compare' => '='
-      );
+    if ($category) {
+        $category_query = array(
+          'key' => 'categoria',
+          'value' => $category,
+          'compare' => '='
+        );
     }
 
-    $categoria_query = null;
-
-    if ($categoria) {
-      $categoria_query = array(
-        'key' => 'categoria',
-        'value' => $categoria,
-        'compare' => '='
-      );
-    }
-
-    $subcategoria_query = null;
-    if ($subcategoria) {
-      $subcategoria_query = array(
-        'key' => 'subcategoria',
-        'value' => $subcategoria,
-        'compare' => '='
-      );
+    $subcategory_query = null;
+    if ($subcategory) {
+        $subcategory_query = array(
+          'key' => 'subcategoria',
+          'value' => $subcategory,
+          'compare' => '='
+        );
     }
 
     $sell = array(
@@ -276,94 +257,74 @@
       's' => $q,
       'meta_query' => array(
         $sell,
-        $usuario_id_query,
-        $categoria_query,
-        $subcategoria_query
+        $user_query,
+        $category_query,
+        $subcategory_query
       )
     );
 
     if ($order) {
-      $query['meta_key'] = 'preco';
-      $query['orderby'] = 'preco';
-      $query['order'] = $order;
+        $query['meta_key'] = 'preco';
+        $query['orderby'] = 'preco';
+        $query['order'] = $order;
     }
 
     $loop = new WP_Query($query);
     $posts = $loop->posts;
     $total = $loop->found_posts;
 
-    $produtos = array();
-    foreach($posts as $key => $value) {
-      $produtos[] = products_scheme($value->post_name);
+    if (!$loop->have_posts()) {
+        $response = new WP_Error('naoexiste', 'Produto não encontrado', array('status' => 404));
+        return $response;
     }
 
+    $products = array();
 
-    $response = rest_ensure_response($produtos);
+    foreach($posts as $key => $value) {
+        $products[] = products_scheme($value->post_name);
+    }
+
+    $response = rest_ensure_response($products);
     $response->header('X-Total-Count', $total);
 
     return rest_ensure_response($response);
-  }
+}
 
-  function get_produto_by_categoria($request) {
+function get_product_by_category($request)
+{
     $q = sanitize_text_field($request['q']) ?: '';
     $_page = sanitize_text_field($request['_page']) ?: 0;
     $_limit = sanitize_text_field($request['_limit']) ?: 9;
 
     return get_produto_categoria_scheme($request);
-  }
+}
 
 
-  function registrar_api_products_categoria() {
+function register_api_products_category()
+{
     register_rest_route('api', 'produtos/(?P<categoria>[-\w]+)', array(
       array(
         'methods' => WP_REST_Server::READABLE,
-        'callback' => 'get_produto_by_categoria',
+        'callback' => 'get_product_by_category',
       ),
     ));
-  }
+}
 
-  add_action('rest_api_init', 'registrar_api_products_categoria');
+add_action('rest_api_init', 'register_api_products_category');
 
-  function get_produto_by_subcategoria($request) {
+function get_product_by_subcategory($request)
+{
     return get_produto_categoria_scheme($request);
-  }
+}
 
-  function registrar_api_products_subcategoria() {
+function register_api_products_subcategory()
+{
     register_rest_route('api', 'produtos/(?P<categoria>[-\w]+)/(?P<subcategoria>[-\w]+)', array(
       array(
         'methods' => WP_REST_Server::READABLE,
-        'callback' => 'get_produto_by_subcategoria',
-      ),
-    ));
-  }
-
-  add_action('rest_api_init', 'registrar_api_products_subcategoria');
-
-
-    
-
-function api_products_endereco_get($request) {
-    $q = sanitize_text_field($request['q']) ?: '';
-    $_page = sanitize_text_field($request['_page']) ?: 0;
-    $_limit = sanitize_text_field($request['_limit']) ?: 9;
-
-   $response = array('message' => 'aaaaaaaaa');
-   return rest_ensure_response($response);
-}
-
-function enderecos() {
-    register_rest_route('api', 'produtos/endereco', array(
-      array(
-        'methods' => WP_REST_Server::READABLE,
-        'callback' => 'api_products_endereco_get',
+        'callback' => 'get_product_by_subcategory',
       ),
     ));
 }
 
-add_action('rest_api_init', 'enderecos');
-
-
-
-
-
-?>
+add_action('rest_api_init', 'register_api_products_subcategory');
