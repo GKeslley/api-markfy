@@ -18,7 +18,7 @@ Markfy permite que usuários:
 - PHP 7.4 ou superior
 - WordPress 5.8 ou superior
 - Banco de dados MySQL
-
+- Instalar o **<a href="https://wordpress.org/plugins/jwt-authentication-for-wp-rest-api/">plugin JWT Authentication</a>** em seu WordPress
 ## Instalação
 
 1. Clone este repositório para a sua máquina local.
