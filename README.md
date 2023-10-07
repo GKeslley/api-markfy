@@ -3,7 +3,7 @@
 ## Introdução
 
 Esta API foi desenvolvida usando WordPress com o intuito de desenvolver um sistema que simula um e-commerce com compra e venda de produtos
-chamado <strong><a href="github.com">Markfy</a></strong>.
+chamado <strong><a href="https://github.com/GKeslley/markfy">Markfy</a></strong>.
 
 ## Recursos
 Markfy permite que usuários:
@@ -25,7 +25,7 @@ Markfy permite que usuários:
 1. Clone este repositório para a sua máquina local.
 2. Instale o WordPress na sua máquina local.
 3. Configure o banco de dados MySQL.
-4. Utilize o <strong><a href="github.com">front-end do projeto</a></strong> para melhor interação. 
+4. Utilize o <strong><a href="https://github.com/GKeslley/markfy">front-end do projeto</a></strong> para melhor interação. 
 
 ## Execução
 
@@ -57,6 +57,10 @@ Aqui estão alguns exemplos de como você pode testar a API:
 - **GET /curtidas**: Listar todos os produtos favoritados
 - **GET /curtida/{slug}**: Verificar se o produto está favoritado
 - **POST /curtir**: Favoritar um novo produto e desfavoritar caso já esteja como favorito
+
+### Comentários - Comente em postagens para tirar suas dúvidas
+
+- **POST /comentario**: Comentar em postagens
 
 ### Transação - Compre produtos e consulte seus produtos comprados
 
