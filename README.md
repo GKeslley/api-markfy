@@ -13,7 +13,6 @@ Markfy permite que usuários:
   - Favoritem produtos <br>
   - Comentem em produtos
   - Excluam produtos
-  - 
 ## Requisitos
 
 - PHP 7.4 ou superior
